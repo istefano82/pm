@@ -1,37 +1,206 @@
-# High level steps for project
+# Detailed Project Plan for Project Management MVP
 
-Part 1: Plan
+This plan outlines the step-by-step implementation of the Project Management MVP web app, building from the existing frontend demo to a full Dockerized application with backend, database, and AI integration.
 
-Enrich this document to plan out each of these parts in detail, with substeps listed out as a checklist to be checked off by the agent, and with tests and success critieria for each. Also create an AGENTS.md file inside the frontend directory that describes the existing code there. Ensure the user checks and approves the plan.
+## Part 1: Plan Enrichment and Frontend Documentation
 
-Part 2: Scaffolding
+**Description**: Enrich this PLAN.md document with detailed substeps, checklists, tests, and success criteria for all parts. Create AGENTS.md in frontend/ describing the existing code. Ensure the plan is comprehensive and ready for user approval.
 
-Set up the Docker infrastructure, the backend in backend/ with FastAPI, and write the start and stop scripts in the scripts/ directory. This should serve example static HTML to confirm that a 'hello world' example works running locally and also make an API call.
+**Substeps**:
+- [x] Review existing AGENTS.md (root) and frontend code.
+- [x] Create detailed AGENTS.md in frontend/ with component descriptions, library functions, tests, and configuration.
+- [x] Break down each of the 10 parts into substeps with checklists.
+- [x] Add tests and success criteria for each part, incorporating valuable unit tests and robust integration testing.
+- [x] Specify JSON format for AI structured outputs.
+- [x] Ensure plan aligns with coding standards (latest versions, simplicity, no emojis).
 
-Part 3: Add in Frontend
+**Tests**:
+- Manual review of enriched plan for completeness.
+- Validate AGENTS.md accuracy against code.
 
-Now update so that the frontend is statically built and served, so that the app has the demo Kanban board displayed at /. Comprehensive unit and integration tests.
+**Success Criteria**:
+- PLAN.md contains detailed substeps for all 10 parts.
+- frontend/AGENTS.md exists and accurately describes the code.
+- User approves the plan.
 
-Part 4: Add in a fake user sign in experience
+## Part 2: Scaffolding (Docker, Backend, Scripts)
 
-Now update so that on first hitting /, you need to log in with dummy credentials ("user", "password") in order to see the Kanban, and you can log out. Comprehensive tests.
+**Description**: Set up Docker infrastructure, create FastAPI backend in backend/, and write start/stop scripts in scripts/ for Mac, PC, Linux. Serve static HTML and make a test API call.
 
-Part 5: Database modeling
+**Substeps**:
+- [x] Create Dockerfile for the entire app (NextJS build + FastAPI + uv).
+- [x] Set up docker-compose.yml for local development.
+- [x] Initialize backend/ with FastAPI app using uv for Python package management.
+- [x] Implement basic FastAPI routes: serve static NextJS build at /, and a test API endpoint (e.g., /api/health).
+- [x] Create scripts/start.sh, scripts/stop.sh for Mac/Linux, and scripts/start.bat, scripts/stop.bat for Windows.
+- [x] Update backend/AGENTS.md with backend description.
+- [x] Test Docker build and run locally.
 
-Now propose a database schema for the Kanban, saving it as JSON. Document the database approach in docs/ and get user sign off.
+**Tests**:
+- Unit tests for key FastAPI routes.
+- Integration tests: Docker container starts, serves HTML at /, API call returns expected response.
+- E2E: Run scripts and verify app accessible.
 
-Part 6: Backend
+**Success Criteria**:
+- Docker container builds successfully.
+- App runs locally via scripts, serves demo HTML and responds to API call.
+- Key backend functionality tested.
 
-Now add API routes to allow the backend to read and change the Kanban for a given user; test this thoroughly with backend unit tests. The database should be created if it doesn't exist.
+## Part 3: Add in Frontend (Static Build)
 
-Part 7: Frontend + Backend
+**Description**: Update setup so frontend is statically built and served by backend. Ensure demo Kanban board displays at /. ✓ COMPLETE
 
-Now have the frontend actually use the backend API, so that the app is a proper persistent Kanban board. Test very throughly.
+**Substeps**:
+- [x] Configure NextJS for static export (next.config.ts).
+- [x] Update Dockerfile to build frontend and copy to backend static files.
+- [x] Modify FastAPI to serve built frontend files.
+- [x] Test static serving in Docker.
 
-Part 8: AI connectivity
+**Tests**:
+- Unit tests for build process.
+- Integration: Frontend builds successfully, served correctly.
+- E2E: Kanban board loads in browser.
 
-Now allow the backend to make an AI call via OpenRouter. Test connectivity with a simple "2+2" test and ensure the AI call is working.
+**Success Criteria**:
+- Frontend builds to static files.
+- Docker container serves Kanban board at /.
+- No runtime errors in browser.
 
-Part 9: Now extend the backend call so that it always calls the AI with the JSON of the Kanban board, plus the user's question (and conversation history). The AI should respond with Structured Outputs that includes the response to the user and optionaly an update to the Kanban. Test thoroughly.
+## Part 4: Add Fake User Sign In
 
-Part 10: Now add a beautiful sidebar widget to the UI supporting full AI chat, and allowing the LLM (as it determines) to update the Kanban based on its Structured Outputs. If the AI updates the Kanban, then the UI should refresh automatically.
+**Description**: Add sign-in experience with hardcoded credentials ("user", "password"). Protect Kanban board behind login, allow logout.
+
+**Substeps**:
+- [ ] Create login page/component in frontend.
+- [ ] Implement session management (simple cookie or localStorage).
+- [ ] Update FastAPI to handle login/logout API.
+- [ ] Redirect to login if not authenticated.
+- [ ] Update UI for login/logout.
+
+**Tests**:
+- Unit tests for key auth logic.
+- Integration: Login API works, session persists.
+- E2E: Login with correct creds shows board, incorrect fails, logout works.
+
+**Success Criteria**:
+- Login required to access board.
+- Hardcoded creds work, invalid fail.
+- Logout clears session.
+
+## Part 5: Database Modeling
+
+**Description**: Propose SQLite database schema for Kanban (users, boards, columns, cards). Document in docs/. Get user sign-off.
+
+**Substeps**:
+- [ ] Design schema: tables for users, boards, columns, cards with relationships.
+- [ ] Document schema in docs/database-schema.md.
+- [ ] Plan migration scripts.
+- [ ] Get user approval.
+
+**Tests**:
+- N/A (design phase).
+
+**Success Criteria**:
+- Schema documented and approved by user.
+- Supports MVP: 1 user, 1 board, multiple columns/cards.
+
+## Part 6: Backend API for Kanban
+
+**Description**: Add FastAPI routes to read/write Kanban data. Database created if missing. Unit tests.
+
+**Substeps**:
+- [ ] Set up SQLAlchemy/SQLite in backend.
+- [ ] Implement models based on schema.
+- [ ] Create API endpoints: GET/POST/PUT/DELETE for boards, columns, cards.
+- [ ] Add database initialization on startup.
+- [ ] Handle user association (hardcoded for MVP).
+
+**Tests**:
+- Unit tests for key models and routes.
+- Integration: API calls update database correctly.
+
+**Success Criteria**:
+- API serves Kanban data from DB.
+- CRUD operations work.
+- DB created on first run.
+
+## Part 7: Frontend + Backend Integration
+
+**Description**: Update frontend to use backend API instead of local state. Persistent Kanban board.
+
+**Substeps**:
+- [ ] Replace local state with API calls in KanbanBoard.
+- [ ] Add fetch functions for columns/cards.
+- [ ] Handle loading states and errors.
+- [ ] Update drag logic to call API on moves.
+- [ ] Test persistence across reloads.
+
+**Tests**:
+- Unit tests for key API integration.
+- Integration: Frontend updates sync with backend.
+- E2E: Drag cards, refresh, changes persist.
+
+**Success Criteria**:
+- Kanban board data persists in DB.
+- All interactions (add, move, delete, rename) work via API.
+- No local state used.
+
+## Part 8: AI Connectivity
+
+**Description**: Enable backend to call OpenRouter AI. Test with simple "2+2" query.
+
+**Substeps**:
+- [ ] Add OpenRouter API integration in backend.
+- [ ] Load OPENROUTER_API_KEY from .env.
+- [ ] Create test endpoint for AI call.
+- [ ] Use gpt-oss-120b:free model.
+- [ ] Handle errors and rate limits.
+
+**Tests**:
+- Unit tests for key AI service functionality.
+- Integration: Test endpoint returns AI response.
+
+**Success Criteria**:
+- AI call works, returns correct answer for simple query.
+- Proper error handling.
+
+## Part 9: AI with Kanban Context
+
+**Description**: Extend AI to receive full Kanban JSON + user question. Respond with JSON: {response: string, updates?: KanbanUpdate[]}.
+
+**Substeps**:
+- [ ] Define JSON schema for AI input (Kanban data + question) and output (response + optional updates).
+- [ ] Update AI call to include context.
+- [ ] Parse structured output.
+- [ ] Apply updates to DB if present.
+
+**Tests**:
+- Unit tests for key parsing and applying updates.
+- Integration: AI call with context works.
+
+**Success Criteria**:
+- AI receives Kanban state.
+- Outputs valid JSON with response and optional updates.
+- Updates applied correctly.
+
+## Part 10: AI Chat Sidebar
+
+**Description**: Add beautiful sidebar for AI chat. AI can update Kanban based on responses. UI refreshes automatically.
+
+**Substeps**:
+- [ ] Design and implement chat sidebar component.
+- [ ] Add chat input, history display.
+- [ ] Integrate with backend AI endpoint.
+- [ ] On AI response with updates, refresh board data.
+- [ ] Style with color scheme.
+
+**Tests**:
+- Unit tests for key chat logic.
+- Integration: Chat sends to AI, updates board.
+- E2E: Full chat flow, board updates.
+
+**Success Criteria**:
+- Sidebar allows chatting with AI.
+- AI can create/edit/move cards via chat.
+- UI updates in real-time.
+- Matches design and colors.
