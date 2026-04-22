@@ -66,16 +66,16 @@ This plan outlines the step-by-step implementation of the Project Management MVP
 - Docker container serves Kanban board at /.
 - No runtime errors in browser.
 
-## Part 4: Add Fake User Sign In
+## Part 4: Add Fake User Sign In ✓ COMPLETE
 
 **Description**: Add sign-in experience with hardcoded credentials ("user", "password"). Protect Kanban board behind login, allow logout.
 
 **Substeps**:
-- [ ] Create login page/component in frontend.
-- [ ] Implement session management (simple cookie or localStorage).
-- [ ] Update FastAPI to handle login/logout API.
-- [ ] Redirect to login if not authenticated.
-- [ ] Update UI for login/logout.
+- [x] Create login page/component in frontend.
+- [x] Implement session management (simple cookie or localStorage).
+- [x] Update FastAPI to handle login/logout API.
+- [x] Redirect to login if not authenticated.
+- [x] Update UI for login/logout.
 
 **Tests**:
 - Unit tests for key auth logic.
@@ -87,15 +87,15 @@ This plan outlines the step-by-step implementation of the Project Management MVP
 - Hardcoded creds work, invalid fail.
 - Logout clears session.
 
-## Part 5: Database Modeling
+## Part 5: Database Modeling ✓ COMPLETE
 
 **Description**: Propose SQLite database schema for Kanban (users, boards, columns, cards). Document in docs/. Get user sign-off.
 
 **Substeps**:
-- [ ] Design schema: tables for users, boards, columns, cards with relationships.
-- [ ] Document schema in docs/database-schema.md.
-- [ ] Plan migration scripts.
-- [ ] Get user approval.
+- [x] Design schema: tables for users, boards, columns, cards with relationships.
+- [x] Document schema in docs/database-schema.md.
+- [x] Plan migration scripts.
+- [x] Get user approval.
 
 **Tests**:
 - N/A (design phase).
