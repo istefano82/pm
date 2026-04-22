@@ -104,25 +104,25 @@ This plan outlines the step-by-step implementation of the Project Management MVP
 - Schema documented and approved by user.
 - Supports MVP: 1 user, 1 board, multiple columns/cards.
 
-## Part 6: Backend API for Kanban
+## Part 6: Backend API for Kanban ✓ COMPLETE
 
 **Description**: Add FastAPI routes to read/write Kanban data. Database created if missing. Unit tests.
 
 **Substeps**:
-- [ ] Set up SQLAlchemy/SQLite in backend.
-- [ ] Implement models based on schema.
-- [ ] Create API endpoints: GET/POST/PUT/DELETE for boards, columns, cards.
-- [ ] Add database initialization on startup.
-- [ ] Handle user association (hardcoded for MVP).
+- [x] Set up SQLAlchemy/SQLite in backend.
+- [x] Implement models based on schema.
+- [x] Create API endpoints: GET/POST/PUT/DELETE for boards, columns, cards.
+- [x] Add database initialization on startup.
+- [x] Handle user association (hardcoded for MVP).
 
 **Tests**:
-- Unit tests for key models and routes.
-- Integration: API calls update database correctly.
+- [x] Unit tests for key models and routes (14 tests, all passing).
+- [x] Integration: API calls update database correctly.
 
 **Success Criteria**:
-- API serves Kanban data from DB.
-- CRUD operations work.
-- DB created on first run.
+- [x] API serves Kanban data from DB.
+- [x] CRUD operations work.
+- [x] DB created on first run.
 
 ## Part 7: Frontend + Backend Integration
 
