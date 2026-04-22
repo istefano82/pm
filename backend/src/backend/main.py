@@ -9,6 +9,7 @@ import secrets
 
 from .database import Base, engine, get_db, SessionLocal
 from .models import User, Board, Column as ColumnModel, Card
+from .ai import call_ai
 
 app = FastAPI(title="Project Management MVP Backend")
 
@@ -179,6 +180,16 @@ async def health():
     return {"status": "ok", "message": "Backend is running"}
 
 
+@app.post("/api/ai/test")
+async def ai_test(token: str = Depends(require_auth)):
+    """Test AI endpoint: calls OpenRouter with '2+2' and returns full response."""
+    try:
+        response = await call_ai("2+2")
+        return response
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"AI call failed: {str(error)}")
+
+
 # Kanban endpoints
 @app.get("/api/board", response_model=BoardOut)
 async def get_board(token: str = Depends(require_auth), db: Session = Depends(get_db)):
@@ -292,11 +303,8 @@ async def delete_card(card_id: int, token: str = Depends(require_auth), db: Sess
 @app.put("/api/cards/{card_id}/move")
 async def move_card(card_id: int, move_data: CardMove, token: str = Depends(require_auth), db: Session = Depends(get_db)):
     """Move a card to a new column and position"""
-    print(f"DEBUG: move_card called for card_id={card_id}, column_id={move_data.column_id}, position={move_data.position}")
-
     card = db.query(Card).filter(Card.id == card_id).first()
     if not card:
-        print(f"DEBUG: Card {card_id} not found")
         raise HTTPException(status_code=404, detail="Card not found")
 
     old_column_id = card.column_id
@@ -327,8 +335,6 @@ async def move_card(card_id: int, move_data: CardMove, token: str = Depends(requ
 
     db.commit()
     db.refresh(card)
-
-    print(f"DEBUG: Card {card_id} moved to column {card.column_id} at position {card.position}")
 
     return CardOut.model_validate(card)
 

@@ -49,12 +49,10 @@ export const KanbanBoard = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    console.log("DEBUG: handleDragEnd called");
     const { active, over } = event;
     setActiveCardId(null);
 
     if (!over || active.id === over.id || !board) {
-      console.log("DEBUG: Early return - over, same id, or no board");
       return;
     }
 
@@ -68,35 +66,22 @@ export const KanbanBoard = () => {
 
     // Find the new position of the card in its destination column
     const cardId = active.id as string;
-    console.log("DEBUG: cardId =", cardId, "type =", typeof cardId);
-
     const destColumnId = newColumns.find((col) => col.cardIds.includes(cardId))?.id;
-    console.log("DEBUG: destColumnId =", destColumnId);
 
     if (destColumnId) {
       const destColumn = newColumns.find((col) => col.id === destColumnId);
       const position = destColumn?.cardIds.indexOf(cardId) ?? 0;
-      console.log("DEBUG: position =", position);
 
       // Parse IDs: strip col- prefix, backend expects numeric IDs
       const numericCardId = parseInt(cardId);
       const numericColumnId = parseInt(destColumnId.replace("col-", ""));
 
-      console.log(
-        `DEBUG: Calling api.moveCard(${numericCardId}, ${numericColumnId}, ${position})`
-      );
-
       // Fire API call in background
       api
         .moveCard(numericCardId, numericColumnId, position)
-        .then(() => {
-          console.log("DEBUG: Card moved successfully");
-        })
         .catch((error) => {
-          console.error("DEBUG: Failed to move card:", error);
+          console.error("Failed to move card:", error);
         });
-    } else {
-      console.log("DEBUG: No destColumnId found!");
     }
   };
 

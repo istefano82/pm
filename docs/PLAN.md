@@ -145,24 +145,24 @@ This plan outlines the step-by-step implementation of the Project Management MVP
 - [x] All interactions (add, move, delete, rename) work via API.
 - [x] No local state used (except for drag tracking).
 
-## Part 8: AI Connectivity
+## Part 8: AI Connectivity ✓ COMPLETE
 
 **Description**: Enable backend to call OpenRouter AI. Test with simple "2+2" query.
 
 **Substeps**:
-- [ ] Add OpenRouter API integration in backend.
-- [ ] Load OPENROUTER_API_KEY from .env.
-- [ ] Create test endpoint for AI call.
-- [ ] Use gpt-oss-120b:free model.
-- [ ] Handle errors and rate limits.
+- [x] Add OpenRouter API integration in backend.
+- [x] Load OPENROUTER_API_KEY from .env.
+- [x] Create test endpoint for AI call.
+- [x] Use openai/gpt-oss-120b:free model.
+- [x] Handle errors and rate limits.
 
 **Tests**:
-- Unit tests for key AI service functionality.
-- Integration: Test endpoint returns AI response.
+- [x] Unit tests for key AI service functionality.
+- [x] Integration: Test endpoint returns AI response.
 
 **Success Criteria**:
-- AI call works, returns correct answer for simple query.
-- Proper error handling.
+- [x] AI call works, returns correct answer for simple query.
+- [x] Proper error handling.
 
 ## Part 9: AI with Kanban Context
 
