@@ -166,3 +166,54 @@ export const createId = (prefix: string) => {
   const timePart = Date.now().toString(36);
   return `${prefix}-${randomPart}${timePart}`;
 };
+
+interface ApiCard {
+  id: number;
+  title: string;
+  details: string;
+  position: number;
+}
+
+interface ApiColumn {
+  id: number;
+  title: string;
+  position: number;
+  cards: ApiCard[];
+}
+
+interface ApiBoard {
+  id: number;
+  title: string;
+  columns: ApiColumn[];
+}
+
+export function boardFromApi(apiBoard: ApiBoard): BoardData {
+  const cardsRecord: Record<string, Card> = {};
+  const columnsData: Column[] = [];
+
+  for (const apiColumn of apiBoard.columns) {
+    const columnId = `col-${apiColumn.id}`;
+    const cardIds: string[] = [];
+
+    for (const apiCard of apiColumn.cards) {
+      const cardId = String(apiCard.id);
+      cardIds.push(cardId);
+      cardsRecord[cardId] = {
+        id: cardId,
+        title: apiCard.title,
+        details: apiCard.details,
+      };
+    }
+
+    columnsData.push({
+      id: columnId,
+      title: apiColumn.title,
+      cardIds,
+    });
+  }
+
+  return {
+    columns: columnsData,
+    cards: cardsRecord,
+  };
+}

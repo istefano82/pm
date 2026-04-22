@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import clsx from "clsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -11,6 +14,7 @@ type KanbanColumnProps = {
   onRename: (columnId: string, title: string) => void;
   onAddCard: (columnId: string, title: string, details: string) => void;
   onDeleteCard: (columnId: string, cardId: string) => void;
+  onEditCard: (columnId: string, cardId: string, title: string, details: string) => void;
 };
 
 export const KanbanColumn = ({
@@ -19,8 +23,30 @@ export const KanbanColumn = ({
   onRename,
   onAddCard,
   onDeleteCard,
+  onEditCard,
 }: KanbanColumnProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(column.title);
+
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+  const handleSave = () => {
+    const trimmed = editTitle.trim();
+    if (trimmed && trimmed !== column.title) {
+      onRename(column.id, trimmed);
+    } else {
+      setEditTitle(column.title);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") {
+      setEditTitle(column.title);
+      setIsEditing(false);
+    }
+  };
 
   return (
     <section
@@ -39,12 +65,28 @@ export const KanbanColumn = ({
               {cards.length} cards
             </span>
           </div>
-          <input
-            value={column.title}
-            onChange={(event) => onRename(column.id, event.target.value)}
-            className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
-            aria-label="Column title"
-          />
+          {isEditing ? (
+            <input
+              autoFocus
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={handleKeyDown}
+              className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none border-b border-[var(--primary-blue)]"
+              aria-label="Column title"
+            />
+          ) : (
+            <h3
+              onDoubleClick={() => {
+                setEditTitle(column.title);
+                setIsEditing(true);
+              }}
+              title="Double-click to rename"
+              className="mt-3 cursor-default select-none font-display text-lg font-semibold text-[var(--navy-dark)]"
+            >
+              {column.title}
+            </h3>
+          )}
         </div>
       </div>
       <div className="mt-4 flex flex-1 flex-col gap-3">
@@ -54,6 +96,7 @@ export const KanbanColumn = ({
               key={card.id}
               card={card}
               onDelete={(cardId) => onDeleteCard(column.id, cardId)}
+              onEdit={(cardId, title, details) => onEditCard(column.id, cardId, title, details)}
             />
           ))}
         </SortableContext>

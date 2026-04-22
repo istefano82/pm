@@ -292,8 +292,11 @@ async def delete_card(card_id: int, token: str = Depends(require_auth), db: Sess
 @app.put("/api/cards/{card_id}/move")
 async def move_card(card_id: int, move_data: CardMove, token: str = Depends(require_auth), db: Session = Depends(get_db)):
     """Move a card to a new column and position"""
+    print(f"DEBUG: move_card called for card_id={card_id}, column_id={move_data.column_id}, position={move_data.position}")
+
     card = db.query(Card).filter(Card.id == card_id).first()
     if not card:
+        print(f"DEBUG: Card {card_id} not found")
         raise HTTPException(status_code=404, detail="Card not found")
 
     old_column_id = card.column_id
@@ -325,6 +328,8 @@ async def move_card(card_id: int, move_data: CardMove, token: str = Depends(requ
     db.commit()
     db.refresh(card)
 
+    print(f"DEBUG: Card {card_id} moved to column {card.column_id} at position {card.position}")
+
     return CardOut.model_validate(card)
 
 
@@ -334,12 +339,18 @@ app.mount("/_next", StaticFiles(directory="static/_next"), name="next_static")
 # Mount favicon and other public files
 app.mount("/public", StaticFiles(directory="static"), name="public_files")
 
-# Catch-all SPA route handler - serves index.html for any non-API path
+# Catch-all route handler for Next.js static export
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
-    """Serve index.html for all non-API routes (SPA routing)"""
-    if full_path and ("." in full_path or full_path.startswith("_next")):
+    # Serve static assets directly (files with extensions)
+    if full_path and "." in full_path:
         return FileResponse(f"static/{full_path}")
+
+    # Check for a page-specific index.html (e.g. /login -> static/login/index.html)
+    if full_path:
+        page_html = f"static/{full_path}/index.html"
+        if os.path.isfile(page_html):
+            return FileResponse(page_html)
 
     return FileResponse("static/index.html")
 
