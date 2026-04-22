@@ -86,25 +86,16 @@ export async function moveCard(
   columnId: number,
   position: number
 ): Promise<void> {
-  const url = `${API_BASE}/cards/${id}/move`;
-  const body = JSON.stringify({
-    column_id: columnId,
-    position,
-  });
-
-  console.log(`API: ${url}`, { column_id: columnId, position });
-
-  const response = await fetch(url, {
+  const response = await fetch(`${API_BASE}/cards/${id}/move`, {
     method: "PUT",
     headers: getHeaders(),
-    body,
+    body: JSON.stringify({
+      column_id: columnId,
+      position,
+    }),
   });
 
-  console.log(`API Response status: ${response.status}`);
-
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`API Error: ${errorText}`);
     throw new Error(`Failed to move card: ${response.statusText}`);
   }
 }
@@ -119,4 +110,34 @@ export async function renameColumn(id: number, title: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`Failed to rename column: ${response.statusText}`);
   }
+}
+
+export async function queryAI(question: string): Promise<{
+  response: string;
+  updates: Array<{
+    action: string;
+    columnId?: number;
+    cardId?: number;
+    title?: string;
+    details?: string;
+    position?: number;
+  }>;
+  board?: BoardData;
+}> {
+  const response = await fetch(`${API_BASE}/ai/query`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ question }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI query failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    response: data.response,
+    updates: data.updates,
+    board: data.board ? boardFromApi(data.board) : undefined,
+  };
 }

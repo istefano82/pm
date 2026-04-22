@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
+import { AISidebar } from "@/components/AISidebar";
 import { createId, moveCard, type BoardData } from "@/lib/kanban";
 import * as api from "@/lib/api";
 
@@ -271,6 +272,8 @@ export const KanbanBoard = () => {
           </DragOverlay>
         </DndContext>
       </main>
+
+      <AISidebar board={board} onBoardUpdate={setBoard} />
     </div>
   );
 };
