@@ -2,7 +2,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 
-DATABASE_URL = "sqlite:///./test_kanban.db" if os.getenv("TESTING") == "true" else "sqlite:///./kanban.db"
+if os.getenv("TESTING") == "true":
+    DATABASE_URL = "sqlite:///./test_kanban.db"
+elif os.getenv("VERCEL"):
+    DATABASE_URL = "sqlite:////tmp/kanban.db"
+else:
+    DATABASE_URL = "sqlite:///./kanban.db"
 
 engine = create_engine(
     DATABASE_URL,
