@@ -9,7 +9,7 @@ import secrets
 
 from .database import Base, engine, get_db, SessionLocal
 from .models import User, Board, Column as ColumnModel, Card
-from .ai import call_ai
+from .ai import call_ai, call_ai_with_context
 
 app = FastAPI(title="Project Management MVP Backend")
 
@@ -78,6 +78,25 @@ class BoardOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AIQueryRequest(BaseModel):
+    question: str
+
+
+class AIUpdate(BaseModel):
+    action: str
+    columnId: int | None = None
+    cardId: int | None = None
+    title: str | None = None
+    details: str | None = None
+    position: int | None = None
+
+
+class AIQueryResponse(BaseModel):
+    response: str
+    updates: list[AIUpdate] = []
+    board: BoardOut | None = None
 
 
 def require_auth(authorization: str = Header(None)) -> str:
@@ -188,6 +207,141 @@ async def ai_test(token: str = Depends(require_auth)):
         return response
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"AI call failed: {str(error)}")
+
+
+@app.post("/api/ai/query", response_model=AIQueryResponse)
+async def ai_query(
+    request: AIQueryRequest,
+    token: str = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Query AI with Kanban context and apply updates."""
+    try:
+        # Get current board state
+        user = db.query(User).filter(User.username == VALID_USERNAME).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        board = db.query(Board).filter(Board.user_id == user.id).first()
+        if not board:
+            raise HTTPException(status_code=404, detail="Board not found")
+
+        columns = db.query(ColumnModel).filter(ColumnModel.board_id == board.id).order_by(ColumnModel.position).all()
+        board_data = {
+            "columns": [
+                {
+                    "id": col.id,
+                    "title": col.title,
+                    "cards": [
+                        {"id": c.id, "title": c.title, "details": c.details}
+                        for c in db.query(Card).filter(Card.column_id == col.id).order_by(Card.position).all()
+                    ]
+                }
+                for col in columns
+            ]
+        }
+
+        # Call AI with context
+        ai_response = await call_ai_with_context(board_data, request.question)
+
+        # Apply updates
+        updates = ai_response.get("updates", [])
+        for update in updates:
+            action = update.get("action")
+
+            if action == "create_card":
+                column_id = update.get("columnId")
+                if not column_id:
+                    continue
+                max_pos = db.query(Card).filter(Card.column_id == column_id).count()
+                card = Card(
+                    column_id=column_id,
+                    title=update.get("title", "Untitled"),
+                    details=update.get("details", ""),
+                    position=max_pos,
+                )
+                db.add(card)
+
+            elif action == "edit_card":
+                card_id = update.get("cardId")
+                card = db.query(Card).filter(Card.id == card_id).first()
+                if card:
+                    if update.get("title"):
+                        card.title = update.get("title")
+                    if update.get("details") is not None:
+                        card.details = update.get("details")
+
+            elif action == "move_card":
+                card_id = update.get("cardId")
+                new_column_id = update.get("columnId")
+                new_position = update.get("position", 0)
+
+                card = db.query(Card).filter(Card.id == card_id).first()
+                if card and new_column_id:
+                    old_column_id = card.column_id
+                    old_position = card.position
+
+                    # Compact old column
+                    cards_after_old = db.query(Card).filter(
+                        Card.column_id == old_column_id,
+                        Card.position > old_position,
+                    ).order_by(Card.position).all()
+                    for i, c in enumerate(cards_after_old):
+                        c.position = old_position + i
+
+                    # Shift new column
+                    cards_at_pos = db.query(Card).filter(
+                        Card.column_id == new_column_id,
+                        Card.position >= new_position,
+                    ).order_by(Card.position.desc()).all()
+                    for c in cards_at_pos:
+                        c.position += 1
+
+                    card.column_id = new_column_id
+                    card.position = new_position
+
+            elif action == "delete_card":
+                card_id = update.get("cardId")
+                card = db.query(Card).filter(Card.id == card_id).first()
+                if card:
+                    col_id = card.column_id
+                    pos = card.position
+                    db.delete(card)
+
+                    # Compact column
+                    cards_after = db.query(Card).filter(
+                        Card.column_id == col_id,
+                        Card.position > pos,
+                    ).order_by(Card.position).all()
+                    for i, c in enumerate(cards_after):
+                        c.position = pos + i
+
+        db.commit()
+
+        # Fetch updated board
+        columns = db.query(ColumnModel).filter(ColumnModel.board_id == board.id).order_by(ColumnModel.position).all()
+        columns_data = []
+        for col in columns:
+            cards = db.query(Card).filter(Card.column_id == col.id).order_by(Card.position).all()
+            columns_data.append(
+                ColumnOut(
+                    id=col.id,
+                    title=col.title,
+                    position=col.position,
+                    cards=[CardOut.model_validate(c) for c in cards],
+                )
+            )
+
+        updated_board = BoardOut(id=board.id, title=board.title, columns=columns_data)
+
+        return AIQueryResponse(
+            response=ai_response.get("response", ""),
+            updates=updates,
+            board=updated_board,
+        )
+
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"AI query failed: {str(error)}")
 
 
 # Kanban endpoints

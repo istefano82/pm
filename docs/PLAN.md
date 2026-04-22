@@ -164,24 +164,24 @@ This plan outlines the step-by-step implementation of the Project Management MVP
 - [x] AI call works, returns correct answer for simple query.
 - [x] Proper error handling.
 
-## Part 9: AI with Kanban Context
+## Part 9: AI with Kanban Context ✓ COMPLETE
 
 **Description**: Extend AI to receive full Kanban JSON + user question. Respond with JSON: {response: string, updates?: KanbanUpdate[]}.
 
 **Substeps**:
-- [ ] Define JSON schema for AI input (Kanban data + question) and output (response + optional updates).
-- [ ] Update AI call to include context.
-- [ ] Parse structured output.
-- [ ] Apply updates to DB if present.
+- [x] Define JSON schema for AI input (Kanban data + question) and output (response + optional updates).
+- [x] Update AI call to include context.
+- [x] Parse structured output.
+- [x] Apply updates to DB if present.
 
 **Tests**:
-- Unit tests for key parsing and applying updates.
-- Integration: AI call with context works.
+- [x] Unit tests for key parsing and applying updates.
+- [x] Integration: AI call with context works.
 
 **Success Criteria**:
-- AI receives Kanban state.
-- Outputs valid JSON with response and optional updates.
-- Updates applied correctly.
+- [x] AI receives Kanban state.
+- [x] Outputs valid JSON with response and optional updates.
+- [x] Updates applied correctly.
 
 ## Part 10: AI Chat Sidebar
 
