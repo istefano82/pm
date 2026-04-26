@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,7 +14,7 @@ import {
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { AISidebar } from "@/components/AISidebar";
-import { createId, moveCard, type BoardData } from "@/lib/kanban";
+import { createId, moveCard, parseColumnId, parseCardId, type BoardData } from "@/lib/kanban";
 import * as api from "@/lib/api";
 
 export const KanbanBoard = () => {
@@ -43,8 +43,6 @@ export const KanbanBoard = () => {
     })
   );
 
-  const cardsById = useMemo(() => board?.cards || {}, [board?.cards]);
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveCardId(event.active.id as string);
   };
@@ -65,7 +63,6 @@ export const KanbanBoard = () => {
       columns: newColumns,
     });
 
-    // Find the new position of the card in its destination column
     const cardId = active.id as string;
     const destColumnId = newColumns.find((col) => col.cardIds.includes(cardId))?.id;
 
@@ -73,13 +70,8 @@ export const KanbanBoard = () => {
       const destColumn = newColumns.find((col) => col.id === destColumnId);
       const position = destColumn?.cardIds.indexOf(cardId) ?? 0;
 
-      // Parse IDs: strip col- prefix, backend expects numeric IDs
-      const numericCardId = parseInt(cardId);
-      const numericColumnId = parseInt(destColumnId.replace("col-", ""));
-
-      // Fire API call in background
       api
-        .moveCard(numericCardId, numericColumnId, position)
+        .moveCard(parseCardId(cardId), parseColumnId(destColumnId), position)
         .catch((error) => {
           console.error("Failed to move card:", error);
         });
@@ -89,7 +81,6 @@ export const KanbanBoard = () => {
   const handleRenameColumn = (columnId: string, title: string) => {
     if (!board) return;
 
-    // Optimistic update
     setBoard({
       ...board,
       columns: board.columns.map((column) =>
@@ -97,9 +88,7 @@ export const KanbanBoard = () => {
       ),
     });
 
-    // Fire API call in background
-    const numericColumnId = parseInt(columnId.replace("col-", ""));
-    api.renameColumn(numericColumnId, title).catch((error) => {
+    api.renameColumn(parseColumnId(columnId), title).catch((error) => {
       console.error("Failed to rename column:", error);
     });
   };
@@ -109,7 +98,6 @@ export const KanbanBoard = () => {
 
     const id = createId("card");
 
-    // Optimistic update
     setBoard({
       ...board,
       cards: {
@@ -123,12 +111,8 @@ export const KanbanBoard = () => {
       ),
     });
 
-    // Fire API call and refetch board to get real ID
-    const numericColumnId = parseInt(columnId.replace("col-", ""));
     api
-      .createCard(numericColumnId, title, details)
-      .then(() => api.fetchBoard())
-      .then((boardData) => setBoard(boardData))
+      .createCard(parseColumnId(columnId), title, details)
       .catch((error) => {
         console.error("Failed to create card:", error);
       });
@@ -145,8 +129,7 @@ export const KanbanBoard = () => {
       },
     });
 
-    const numericCardId = parseInt(cardId);
-    api.updateCard(numericCardId, title, details).catch((error) => {
+    api.updateCard(parseCardId(cardId), title, details).catch((error) => {
       console.error("Failed to update card:", error);
     });
   };
@@ -154,7 +137,6 @@ export const KanbanBoard = () => {
   const handleDeleteCard = (columnId: string, cardId: string) => {
     if (!board) return;
 
-    // Optimistic update
     setBoard({
       ...board,
       cards: Object.fromEntries(
@@ -162,22 +144,17 @@ export const KanbanBoard = () => {
       ),
       columns: board.columns.map((column) =>
         column.id === columnId
-          ? {
-              ...column,
-              cardIds: column.cardIds.filter((id) => id !== cardId),
-            }
+          ? { ...column, cardIds: column.cardIds.filter((id) => id !== cardId) }
           : column
       ),
     });
 
-    // Fire API call in background
-    const numericCardId = parseInt(cardId);
-    api.deleteCard(numericCardId).catch((error) => {
+    api.deleteCard(parseCardId(cardId)).catch((error) => {
       console.error("Failed to delete card:", error);
     });
   };
 
-  const activeCard = activeCardId ? cardsById[activeCardId] : null;
+  const activeCard = activeCardId ? board?.cards[activeCardId] : null;
 
   if (isLoading) {
     return (

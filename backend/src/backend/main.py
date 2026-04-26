@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 import os
 import secrets
 
@@ -19,6 +21,44 @@ VALID_PASSWORD = "password"
 
 # Simple in-memory token store (for MVP only - not production)
 valid_tokens = set()
+
+
+# Helper functions
+def compact_column_positions(db: Session, column_id: int, after_position: int) -> None:
+    cards_after = db.query(Card).filter(
+        Card.column_id == column_id,
+        Card.position > after_position,
+    ).order_by(Card.position).all()
+    for i, c in enumerate(cards_after):
+        c.position = after_position + i
+
+
+def get_user_board(db: Session) -> tuple[User, Board]:
+    user = db.query(User).filter(User.username == VALID_USERNAME).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    board = db.query(Board).filter(Board.user_id == user.id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    return user, board
+
+
+def serialize_board_for_ai(db: Session, columns: list[ColumnModel]) -> dict:
+    return {
+        "columns": [
+            {
+                "id": col.id,
+                "title": col.title,
+                "cards": [
+                    {"id": c.id, "title": c.title, "details": c.details}
+                    for c in db.query(Card).filter(Card.column_id == col.id).order_by(Card.position).all()
+                ]
+            }
+            for col in columns
+        ]
+    }
 
 # Pydantic schemas
 class LoginRequest(BaseModel):
@@ -99,15 +139,17 @@ class AIQueryResponse(BaseModel):
     board: BoardOut | None = None
 
 
-def require_auth(authorization: str = Header(None)) -> str:
-    """Validate Bearer token"""
+def extract_bearer_token(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+    return authorization[7:]
 
-    token = authorization[7:]
+
+def require_auth(authorization: str = Header(None)) -> str:
+    """Validate Bearer token"""
+    token = extract_bearer_token(authorization)
     if token not in valid_tokens:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-
     return token
 
 
@@ -172,25 +214,15 @@ async def login(request: LoginRequest):
 
 
 @app.post("/api/logout")
-async def logout(authorization: str = Header(None)):
+async def logout(token: str = Depends(require_auth)):
     """Logout and invalidate token"""
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization[7:]
-        valid_tokens.discard(token)
-
+    valid_tokens.discard(token)
     return {"message": "Logged out successfully"}
 
 
 @app.get("/api/verify")
-async def verify(authorization: str = Header(None)):
+async def verify(token: str = Depends(require_auth)):
     """Verify authentication token"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
-
-    token = authorization[7:]
-    if token not in valid_tokens:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
     return {"status": "authenticated"}
 
 
@@ -217,29 +249,10 @@ async def ai_query(
 ):
     """Query AI with Kanban context and apply updates."""
     try:
-        # Get current board state
-        user = db.query(User).filter(User.username == VALID_USERNAME).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        board = db.query(Board).filter(Board.user_id == user.id).first()
-        if not board:
-            raise HTTPException(status_code=404, detail="Board not found")
+        user, board = get_user_board(db)
 
         columns = db.query(ColumnModel).filter(ColumnModel.board_id == board.id).order_by(ColumnModel.position).all()
-        board_data = {
-            "columns": [
-                {
-                    "id": col.id,
-                    "title": col.title,
-                    "cards": [
-                        {"id": c.id, "title": c.title, "details": c.details}
-                        for c in db.query(Card).filter(Card.column_id == col.id).order_by(Card.position).all()
-                    ]
-                }
-                for col in columns
-            ]
-        }
+        board_data = serialize_board_for_ai(db, columns)
 
         # Call AI with context
         ai_response = await call_ai_with_context(board_data, request.question)
@@ -281,15 +294,8 @@ async def ai_query(
                     old_column_id = card.column_id
                     old_position = card.position
 
-                    # Compact old column
-                    cards_after_old = db.query(Card).filter(
-                        Card.column_id == old_column_id,
-                        Card.position > old_position,
-                    ).order_by(Card.position).all()
-                    for i, c in enumerate(cards_after_old):
-                        c.position = old_position + i
+                    compact_column_positions(db, old_column_id, old_position)
 
-                    # Shift new column
                     cards_at_pos = db.query(Card).filter(
                         Card.column_id == new_column_id,
                         Card.position >= new_position,
@@ -307,14 +313,7 @@ async def ai_query(
                     col_id = card.column_id
                     pos = card.position
                     db.delete(card)
-
-                    # Compact column
-                    cards_after = db.query(Card).filter(
-                        Card.column_id == col_id,
-                        Card.position > pos,
-                    ).order_by(Card.position).all()
-                    for i, c in enumerate(cards_after):
-                        c.position = pos + i
+                    compact_column_positions(db, col_id, pos)
 
         db.commit()
 
@@ -348,15 +347,8 @@ async def ai_query(
 @app.get("/api/board", response_model=BoardOut)
 async def get_board(token: str = Depends(require_auth), db: Session = Depends(get_db)):
     """Get full board state with columns and cards"""
-    user = db.query(User).filter(User.username == VALID_USERNAME).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user, board = get_user_board(db)
 
-    board = db.query(Board).filter(Board.user_id == user.id).first()
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
-
-    # Load columns and cards ordered by position
     columns = db.query(ColumnModel).filter(ColumnModel.board_id == board.id).order_by(ColumnModel.position).all()
 
     columns_data = []
@@ -394,14 +386,13 @@ async def create_card(card_data: CardCreate, token: str = Depends(require_auth),
     if not column:
         raise HTTPException(status_code=404, detail="Column not found")
 
-    # Get max position in column
-    max_position = db.query(Card).filter(Card.column_id == card_data.column_id).count()
+    max_pos = db.query(func.max(Card.position)).filter(Card.column_id == card_data.column_id).scalar() or -1
 
     card = Card(
         column_id=card_data.column_id,
         title=card_data.title,
         details=card_data.details,
-        position=max_position
+        position=max_pos + 1
     )
     db.add(card)
     db.commit()
@@ -439,16 +430,7 @@ async def delete_card(card_id: int, token: str = Depends(require_auth), db: Sess
     position = card.position
 
     db.delete(card)
-
-    # Compact positions in the column
-    cards_after = db.query(Card).filter(
-        Card.column_id == column_id,
-        Card.position > position
-    ).order_by(Card.position).all()
-
-    for i, c in enumerate(cards_after):
-        c.position = position + i
-
+    compact_column_positions(db, column_id, position)
     db.commit()
 
     return {"message": "Card deleted"}
@@ -464,17 +446,9 @@ async def move_card(card_id: int, move_data: CardMove, token: str = Depends(requ
     old_column_id = card.column_id
     old_position = card.position
 
-    # Compact positions in old column
     if old_column_id != move_data.column_id or old_position != move_data.position:
-        cards_after_old = db.query(Card).filter(
-            Card.column_id == old_column_id,
-            Card.position > old_position
-        ).order_by(Card.position).all()
+        compact_column_positions(db, old_column_id, old_position)
 
-        for i, c in enumerate(cards_after_old):
-            c.position = old_position + i
-
-        # Shift positions in new column to make room
         cards_at_position = db.query(Card).filter(
             Card.column_id == move_data.column_id,
             Card.position >= move_data.position
@@ -483,7 +457,6 @@ async def move_card(card_id: int, move_data: CardMove, token: str = Depends(requ
         for c in cards_at_position:
             c.position += 1
 
-        # Update card
         card.column_id = move_data.column_id
         card.position = move_data.position
 

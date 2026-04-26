@@ -10,17 +10,19 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "openai/gpt-oss-120b:free"
 
 
-async def call_ai(message: str) -> dict:
-    """Call OpenRouter AI with the given message and return full response."""
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OPENROUTER_API_KEY not set in environment")
-
-    headers = {
+def _get_openrouter_headers() -> dict:
+    return {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:8000",
         "User-Agent": "ProjectManagementMVP/1.0",
     }
+
+
+async def call_ai(message: str) -> dict:
+    """Call OpenRouter AI with the given message and return full response."""
+    if not OPENROUTER_API_KEY:
+        raise ValueError("OPENROUTER_API_KEY not set in environment")
 
     payload = {
         "model": MODEL,
@@ -31,7 +33,7 @@ async def call_ai(message: str) -> dict:
         response = await client.post(
             f"{OPENROUTER_BASE_URL}/chat/completions",
             json=payload,
-            headers=headers,
+            headers=_get_openrouter_headers(),
             timeout=30.0,
         )
         if response.status_code != 200:
@@ -40,10 +42,7 @@ async def call_ai(message: str) -> dict:
 
 
 async def call_ai_with_context(board_data: dict, question: str) -> dict:
-    """Call AI with Kanban context and return response with optional updates.
-
-    Returns: {"response": str, "updates": [{"action": str, ...}]}
-    """
+    """Call AI with Kanban context and return response with optional updates."""
     if not OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not set in environment")
 
@@ -66,13 +65,6 @@ Respond with ONLY a JSON object (no markdown, no explanations) in this format:
 
 Only include updates if the user's question implies changes. Otherwise, just respond without updates."""
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:8000",
-        "User-Agent": "ProjectManagementMVP/1.0",
-    }
-
     payload = {
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
@@ -82,7 +74,7 @@ Only include updates if the user's question implies changes. Otherwise, just res
         response = await client.post(
             f"{OPENROUTER_BASE_URL}/chat/completions",
             json=payload,
-            headers=headers,
+            headers=_get_openrouter_headers(),
             timeout=30.0,
         )
         if response.status_code != 200:
@@ -91,10 +83,8 @@ Only include updates if the user's question implies changes. Otherwise, just res
         openrouter_response = response.json()
         content = openrouter_response["choices"][0]["message"]["content"]
 
-        # Parse the JSON response from AI
         try:
-            ai_response = json.loads(content)
-            return ai_response
+            return json.loads(content)
         except json.JSONDecodeError:
             return {
                 "response": content,

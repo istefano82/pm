@@ -32,7 +32,7 @@ class Column(Base):
     id = SQLColumn(Integer, primary_key=True, index=True)
     board_id = SQLColumn(Integer, ForeignKey("boards.id"), nullable=False)
     title = SQLColumn(String, nullable=False)
-    position = SQLColumn(Integer, nullable=False)
+    position = SQLColumn(Integer, nullable=False, index=True)
     created_at = SQLColumn(DateTime, default=datetime.utcnow)
 
     board = relationship("Board", back_populates="columns")
@@ -46,7 +46,7 @@ class Card(Base):
     column_id = SQLColumn(Integer, ForeignKey("columns.id"), nullable=False)
     title = SQLColumn(String, nullable=False)
     details = SQLColumn(Text, default="")
-    position = SQLColumn(Integer, nullable=False)
+    position = SQLColumn(Integer, nullable=False, index=True)
     created_at = SQLColumn(DateTime, default=datetime.utcnow)
 
     column = relationship("Column", back_populates="cards")

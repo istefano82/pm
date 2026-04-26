@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
-import { BoardData } from "@/lib/kanban";
+import { BoardData, createId } from "@/lib/kanban";
 import * as api from "@/lib/api";
 
 type Message = {
@@ -30,13 +30,13 @@ export const AISidebar = ({ board, onBoardUpdate }: AISidebarProps) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages.length]);
 
   const handleSend = async () => {
     if (!input.trim() || !board || isLoading) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: createId("msg"),
       role: "user",
       content: input,
       timestamp: new Date(),
@@ -50,7 +50,7 @@ export const AISidebar = ({ board, onBoardUpdate }: AISidebarProps) => {
       const response = await api.queryAI(input);
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: createId("msg"),
         role: "assistant",
         content: response.response,
         timestamp: new Date(),
@@ -58,14 +58,13 @@ export const AISidebar = ({ board, onBoardUpdate }: AISidebarProps) => {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Apply updates and refresh board
       if (response.updates && response.updates.length > 0 && response.board) {
         onBoardUpdate(response.board);
       }
     } catch (error) {
       console.error("AI query failed:", error);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: createId("msg"),
         role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
         timestamp: new Date(),

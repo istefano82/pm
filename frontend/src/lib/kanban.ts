@@ -167,6 +167,12 @@ export const createId = (prefix: string) => {
   return `${prefix}-${randomPart}${timePart}`;
 };
 
+export const parseColumnId = (columnId: string): number =>
+  parseInt(columnId.replace("col-", ""));
+
+export const parseCardId = (cardId: string): number =>
+  parseInt(cardId);
+
 interface ApiCard {
   id: number;
   title: string;
